@@ -1,0 +1,2750 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Super Metroid Interactive Visibility Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0"
+        rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+
+            /* ==================================
+            カラーテーマ
+            ================================== */
+
+            /* 背景色 */
+            --color-bg-main: #10131a;
+            --color-bg-panel: #171c25;
+            --color-bg-panel-alt: #202a39;
+            --color-bg-input: #0e131b;
+            --color-bg-viewport: #080a0e;
+            --color-bg-note: #111720;
+            --color-bg-button: #273244;
+            --color-bg-button-hover: #35445d;
+            --color-bg-button-primary: #285a82;
+            --color-bg-button-primary-hover: #356f9e;
+            --color-bg-active: #765b22;
+            --color-bg-folder-hover: #29445a;
+            --color-bg-subarea-hover: #303d50;
+
+            /* 文字色 */
+            --color-text-main: #e8edf5;
+            --color-text-button: #edf3ff;
+            --color-text-secondary: #aab5c5;
+            --color-text-muted: #8794a7;
+            --color-text-subarea: #bac5d4;
+            --color-text-placeholder: #9ba9bc;
+            --color-text-accent: #55c7ff;
+
+            /* 境界線 */
+            --color-border: #303846;
+            --color-border-control: #43516a;
+            --color-border-dialog: #46546b;
+            --color-border-accent: #3978aa;
+            --color-border-active: #d6a849;
+
+            /* アクセントカラー */
+            --color-accent: #55c7ff;
+            --color-accent-selected: #ffd45c;
+            --color-accent-active: #d6a849;
+
+            /* ボタン状態 */
+            --color-button-active: #765b22;
+            --color-button-active-border: #d6a849;
+
+            /* タイル */
+            --color-tile-hidden: #000000;
+            --color-tile-ignored: #000000;
+            --color-tile-highlight: #ffffff4d;
+            --color-tile-ignored-highlight: #750000;
+            --color-tile-hover: #55c7ff;
+
+            /* 選択範囲 */
+            --color-selection-border: #ffd45c;
+            --color-selection-background: #ffd45c18;
+
+            /* ダイアログ */
+            --color-dialog-bg: #171e29;
+            --color-dialog-backdrop: #000a;
+
+            /* フォルダ */
+            --color-folder-default: #43516a;
+            --color-folder-background: #202a39;
+
+            /* その他 */
+            --color-transparent: transparent;
+            --color-white: #ffffff;
+            --color-black: #000000;
+
+            /* ==================================
+            共通サイズ・装飾
+            ================================== */
+
+            --ui-border: 1px solid var(--color-border);
+            --ui-border-control: 1px solid var(--color-border-control);
+            --ui-radius: 6px;
+            --ui-radius-small: 4px;
+            --ui-radius-input: 5px;
+
+            --room-outline-width: 2px;
+            --target-room-outline-width: 3px;
+        }
+
+        /* ==================================
+        共通
+        ================================== */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            background: var(--color-bg-main);
+            color: var(--color-text-main);
+        }
+
+        h1 {
+            margin: 0 0 4px;
+            font-size: 18px;
+        }
+
+        p {
+            margin: 0;
+            color: var(--color-text-secondary);
+            font-size: 12px;
+        }
+
+        /* ==================================
+        基本レイアウト
+        ================================== */
+
+        header {
+            padding: 12px 16px 9px;
+            border-bottom: var(--ui-border);
+        }
+
+        #workspace {
+            display: flex;
+            flex: 1 1 0;
+            min-height: 0;
+        }
+
+        #viewport {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--color-bg-viewport);
+            cursor: grab;
+            touch-action: none;
+        }
+
+        #viewport.grabbing {
+            cursor: grabbing;
+        }
+
+        .note {
+            flex-shrink: 0;
+            margin-top: auto;
+            padding: 7px 12px;
+            background: var(--color-bg-note);
+            color: var(--color-text-muted);
+            font-size: 12px;
+        }
+
+        /* ==================================
+        ボタン・入力共通
+        ================================== */
+
+        button {
+            padding: 7px 10px;
+            border: var(--ui-border-control);
+            border-radius: var(--ui-radius);
+            background: var(--color-bg-button);
+            color: var(--color-text-button);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        button:hover {
+            background: var(--color-bg-button-hover);
+        }
+
+        button.primary {
+            border-color: var(--color-border-accent);
+            background: var(--color-bg-button-primary);
+        }
+
+        button.primary:hover {
+            background: var(--color-bg-button-primary-hover);
+        }
+
+        input {
+            width: 100%;
+            padding: 7px;
+            border: var(--ui-border-control);
+            border-radius: var(--ui-radius-input);
+            background: var(--color-bg-input);
+            color: var(--color-white);
+        }
+
+        .material-symbols-rounded {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Material Symbols Rounded";
+            font-size: 20px;
+            font-style: normal;
+            font-weight: normal;
+            line-height: 1;
+            white-space: nowrap;
+            direction: ltr;
+            font-feature-settings: "liga";
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ==================================
+        ツールバー
+        ================================== */
+
+        .toolbar {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 12px;
+            border-bottom: var(--ui-border);
+            background: var(--color-bg-panel);
+        }
+
+        .toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 38px;
+            height: 36px;
+            padding: 6px;
+        }
+
+        #modeBtn.active,
+        #toggleHiddenHighlight.active,
+        #lockEditBtn.active {
+            border-color: var(--color-button-active-border);
+            background: var(--color-button-active);
+        }
+
+        /* マウス位置・部屋名 */
+
+        #mouseInfo {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 0;
+            height: 100%;
+            margin: 0;
+            color: var(--color-text-secondary);
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        #mouseCoords {
+            position: absolute;
+            top: 50%;
+            left: 24px;
+            width: 76px;
+            transform: translateY(-50%);
+            font-family: monospace;
+            font-size: larger;
+            text-align: left;
+            white-space: pre;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #roomSeparator {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 16px;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        #hoverNames {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            width: max-content;
+            max-width: min(40vw, 400px);
+            overflow: hidden;
+            transform: translateY(-50%);
+            white-space: nowrap;
+        }
+
+        #hoverFolderName,
+        #hoverRoomName {
+            min-width: 10px;
+            overflow: hidden;
+            font-family: monospace;
+            font-size: larger;
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: pre;
+        }
+
+        #hoverFolderName {
+            color: var(--color-text-secondary);
+        }
+
+        #hoverRoomName {
+            color: var(--color-text-accent);
+        }
+
+        /* ステータス */
+
+        #status {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            color: var(--color-text-secondary);
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #status>span:not(.status-separator) {
+            display: inline-block;
+            text-align: right;
+        }
+
+        #hiddenStatus {
+            width: 180px;
+        }
+
+        #selectionStatus {
+            width: 100px;
+        }
+
+        #modeStatus {
+            width: 100px;
+            text-align: center !important;
+        }
+
+        #scaleStatus {
+            width: 55px;
+        }
+
+        .status-separator {
+            flex-shrink: 0;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* ==================================
+        マップ・タイル
+        ================================== */
+
+        #stage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+        }
+
+        #map,
+        #mapLod {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+
+        #mapLod {
+            display: none;
+            width: 16896px;
+            height: 14336px;
+            max-width: none;
+        }
+
+        #tiles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: grid;
+        }
+
+        .tile {
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+            background: var(--color-transparent);
+            cursor: pointer;
+        }
+
+        .tile:hover {
+            outline: 1px solid var(--color-tile-hover);
+            outline-offset: -1px;
+        }
+
+        .tile.hidden {
+            background: var(--color-tile-hidden);
+        }
+
+        #tiles .tile.ignored {
+            background: var(--color-tile-ignored) !important;
+        }
+
+        #tiles.highlight-hidden .tile.hidden {
+            background: var(--color-tile-highlight);
+        }
+
+        #tiles.highlight-hidden .tile.ignored {
+            background: var(--color-tile-ignored-highlight) !important;
+        }
+
+        .tile.selected {
+            outline: 2px solid var(--color-accent-selected);
+            outline-offset: -2px;
+        }
+
+        .tile.target-room::after {
+            position: absolute;
+            inset: calc(var(--target-room-outline-width) * 1.5);
+            z-index: 2;
+            border: var(--target-room-outline-width) dashed var(--color-accent);
+            content: "";
+            pointer-events: none;
+        }
+
+        #tiles.room-outlines-hidden .tile.in-room {
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        #selectionBox {
+            position: absolute;
+            z-index: 5;
+            display: none;
+            border: 1px solid var(--color-selection-border);
+            background: var(--color-selection-background);
+            pointer-events: none;
+        }
+
+        /* ==================================
+        RoomListパネル
+        ================================== */
+
+        #roomPanel {
+            display: flex;
+            flex-shrink: 0;
+            flex-direction: column;
+            width: 280px;
+            overflow: hidden;
+            padding: 12px;
+            border-right: var(--ui-border);
+            background: var(--color-bg-panel);
+            transition: width 0.2s ease, padding 0.2s ease;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        #roomPanel::-webkit-scrollbar {
+            display: none;
+        }
+
+        .room-panel-header {
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        #roomPanel h2 {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        #toggleRoomPanel {
+            flex-shrink: 0;
+            padding: 4px 8px;
+        }
+
+        #roomPanelContent {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #roomPanel.collapsed {
+            width: 42px;
+            overflow: hidden;
+            padding: 8px 5px;
+        }
+
+        #roomPanel.collapsed .room-panel-header {
+            flex-direction: column;
+            margin-bottom: 0;
+        }
+
+        #roomPanel.collapsed h2,
+        #roomPanel.collapsed #roomPanelContent {
+            display: none;
+        }
+
+        #roomPanel.collapsed #toggleRoomPanel {
+            padding: 6px;
+        }
+
+        /* RoomList操作ボタン */
+
+        .room-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+            width: 100%;
+        }
+
+        #roomPanel .room-actions {
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .room-actions>button {
+            display: inline-flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 36px;
+            height: 34px;
+            padding: 5px;
+        }
+
+        #roomPanel button {
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        #roomPanel .room-actions button {
+            padding: 5px;
+        }
+
+        /* 部屋一覧 */
+
+        #roomList {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-height: 0;
+            gap: 6px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        #roomList::-webkit-scrollbar {
+            display: none;
+        }
+
+        .room-empty {
+            padding: 8px 2px;
+            color: var(--color-text-muted);
+            font-size: 12px;
+        }
+
+        .room-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+            min-width: 0;
+            cursor: grab;
+        }
+
+        .room-item.active {
+            border-color: var(--color-accent-selected);
+        }
+
+        .room-item.dragging {
+            opacity: 0.4;
+        }
+
+        .room-item.drag-over {
+            border-top: 2px solid var(--color-accent);
+        }
+
+        .room-item>.subarea-list {
+            flex: 0 0 100%;
+        }
+
+        /* 部屋名 */
+
+        .room-name {
+            overflow: hidden;
+            padding: 4px;
+            border: 0;
+            background: none;
+            text-align: left;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .room-name:hover {
+            background: var(--color-bg-button-hover);
+        }
+
+        .room-item .room-name,
+        .room-item .room-name-input {
+            flex: 1 1 0;
+            width: 0;
+            min-width: 0;
+        }
+
+        .room-item .room-name-input,
+        .room-name-input {
+            box-sizing: border-box;
+            height: 32px;
+            padding: 4px 8px;
+            font-size: 14px;
+        }
+
+        .room-item .room-name-input {
+            display: block;
+            border: 1px solid var(--color-accent);
+            border-radius: var(--ui-radius-input);
+            background: var(--color-bg-input);
+            color: var(--color-white);
+        }
+
+        /* 部屋の操作ボタン */
+
+        .room-item>button:not(.room-name):not(.subarea-toggle),
+        .folder-item>button:not(.folder-toggle) {
+            display: inline-flex;
+            flex: 0 0 32px;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 30px;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .room-item>button:not(.room-name):not(.subarea-toggle) .material-symbols-rounded,
+        .folder-item>button:not(.folder-toggle) .material-symbols-rounded {
+            display: block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+        }
+
+        .room-item input {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ==================================
+        フォルダ
+        ================================== */
+
+        .folder-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+            min-width: 0;
+            padding: 5px;
+            border: var(--ui-border-control);
+            border-radius: var(--ui-radius);
+            background: var(--color-folder-background);
+        }
+
+        .folder-item.drag-over {
+            border-color: var(--color-accent);
+            background: var(--color-bg-folder-hover);
+        }
+
+        .folder-toggle {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            min-width: 0;
+            gap: 6px;
+            overflow: hidden;
+            border: 0;
+            background: none;
+            text-align: left;
+        }
+
+        .folder-toggle .folder-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .folder-count {
+            flex-shrink: 0;
+            color: var(--color-text-muted);
+            font-size: 11px;
+        }
+
+        .folder-color {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            padding: 2px;
+            border: var(--ui-border-control);
+            border-radius: var(--ui-radius-small);
+            background: var(--color-transparent);
+            cursor: pointer;
+        }
+
+        .folder-rooms {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 5px 0 8px 14px;
+            padding-left: 10px;
+            border-left: none;
+        }
+
+        .folder-rooms::before {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -10px;
+            width: 1px;
+            background: var(--folder-color, var(--color-folder-default));
+            content: "";
+        }
+
+        .folder-empty {
+            padding: 5px;
+            color: var(--color-text-muted);
+            font-size: 11px;
+        }
+
+        .unfiled-header {
+            padding: 5px 2px;
+            border-bottom: var(--ui-border);
+            color: var(--color-text-secondary);
+            font-size: 12px;
+        }
+
+        .unfiled-header.drag-over {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        /* ==================================
+        サブエリア
+        ================================== */
+
+        .subarea-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+            padding: 3px 0 3px 18px;
+            border-left: var(--ui-border-control);
+        }
+
+        .subarea-list[hidden] {
+            display: none !important;
+        }
+
+        .subarea-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+            min-width: 0;
+            padding: 3px 4px;
+            border-radius: var(--ui-radius-small);
+            background: var(--color-bg-panel-alt);
+        }
+
+        /* サブエリア名 */
+
+        .subarea-item .subarea-name {
+            flex: 1 1 0;
+            width: 0;
+            min-width: 0;
+            height: 30px;
+            overflow: hidden;
+            padding: 4px 6px;
+            border: none;
+            border-radius: 3px;
+            background: var(--color-transparent);
+            color: var(--color-text-subarea);
+            font-size: 12px;
+            text-align: left;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .subarea-item .subarea-name:hover {
+            border-radius: 3px;
+            background: var(--color-bg-subarea-hover);
+        }
+
+        .subarea-item .room-name-input {
+            flex: 1 1 0;
+            width: 0;
+            min-width: 0;
+            height: 30px;
+            padding: 4px 6px;
+            font-size: 12px;
+        }
+
+        /* サブエリアの表示切替・削除ボタン */
+
+        .subarea-item button:not(.subarea-name) {
+            display: inline-flex;
+            flex: 0 0 32px;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 30px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .subarea-item button:not(.subarea-name) .material-symbols-rounded {
+            display: block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+        }
+
+        /* サブエリア展開ボタン */
+
+        .room-item>.subarea-toggle {
+            display: inline-flex;
+            flex: 0 0 20px;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            min-width: 20px;
+            height: 24px;
+            margin: 0 5px 0 -15px;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            background: var(--color-transparent);
+            color: var(--color-text-muted);
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .room-item>.subarea-toggle:hover {
+            background: var(--color-transparent);
+        }
+
+        .subarea-toggle .material-symbols-rounded {
+            display: block;
+            width: 16px;
+            height: 16px;
+            font-size: 16px;
+            line-height: 16px;
+            text-align: center;
+            transition: transform 0.15s ease;
+        }
+
+        .room-item.subareas-expanded .subarea-toggle .material-symbols-rounded {
+            transform: rotate(90deg);
+        }
+
+        /* ==================================
+        編集ロック
+        ================================== */
+
+        #roomPanel.locked .room-actions {
+            display: none;
+        }
+
+        #roomPanel.locked .room-name,
+        #roomPanel.locked .subarea-name {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        #roomPanel.locked .room-item>button:not(.visibility-toggle):not(.subarea-toggle):not(.room-name),
+        #roomPanel.locked .subarea-item button:not(.visibility-toggle):not(.subarea-name),
+        #roomPanel.locked .folder-item button:not(.folder-toggle),
+        #roomPanel.locked .folder-color {
+            display: none;
+        }
+
+        #roomPanel.locked .room-item,
+        #roomPanel.locked .folder-item {
+            cursor: default;
+        }
+
+        body.edit-locked #settingsBtn,
+        body.edit-locked #modeBtn,
+        body.edit-locked #hideSelected,
+        body.edit-locked #showSelected,
+        body.edit-locked #hideAll,
+        body.edit-locked #showAll,
+        body.edit-locked #toggleHiddenHighlight,
+        body.edit-locked #clearSelection {
+            display: none;
+        }
+
+        /* ==================================
+        設定ダイアログ
+        ================================== */
+
+        dialog {
+            width: min(560px, calc(100vw - 24px));
+            padding: 18px;
+            border: 1px solid var(--color-border-dialog);
+            border-radius: 10px;
+            background: var(--color-dialog-bg);
+            color: var(--color-text-main);
+        }
+
+        dialog::backdrop {
+            background: var(--color-dialog-backdrop);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .settings-grid label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: var(--color-text-subarea);
+            font-size: 12px;
+        }
+
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .hint {
+            margin: 10px 0;
+            color: var(--color-text-placeholder);
+            font-size: 12px;
+        }
+
+        /* ==================================
+        レスポンシブ
+        ================================== */
+
+        @media (max-width: 800px) {
+            #workspace {
+                flex-direction: row;
+            }
+
+            #roomPanel {
+                width: 240px;
+                max-height: none;
+                border-top: 0;
+                border-right: var(--ui-border);
+            }
+
+            #roomPanel.collapsed {
+                width: 42px;
+            }
+
+            #viewport {
+                flex: 1;
+                height: 55vh;
+                min-height: 300px;
+            }
+        }
+
+        @media (max-width: 650px) {
+            #status {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Super Metroid Interactive Map</h1>
+        <p>各タイルや部屋の表示状態を切り替え可能なインタラクティブマップ</p>
+    </header>
+    <div class="toolbar">
+        <button id="lockEditBtn" title="編集をロック" aria-label="編集をロック">
+            <span class="material-symbols-rounded">lock_open</span>
+        </button>
+        <button id="settingsBtn" title="グリッド設定" aria-label="グリッド設定">
+            <span class="material-symbols-rounded">tune</span>
+        </button>
+        <button id="modeBtn" title="選択モード" aria-label="選択モード">
+            <span class="material-symbols-rounded">edit</span>
+        </button>
+        <button id="toggleRoomOutlines" title="部屋の輪郭線を非表示" aria-label="部屋の輪郭線を非表示">
+            <span class="material-symbols-rounded">border_outer</span>
+        </button>
+        <button id="toggleHiddenHighlight" title="非表示タイルをハイライト" aria-label="非表示タイルをハイライト">
+            <span class="material-symbols-rounded">highlight</span>
+        </button>
+        <button id="hideSelected" class="primary" title="選択タイルを隠す" aria-label="選択タイルを隠す">
+            <span class="material-symbols-rounded">visibility_off</span>
+        </button>
+        <button id="showSelected" title="選択タイルを表示" aria-label="選択タイルを表示">
+            <span class="material-symbols-rounded">visibility</span>
+        </button>
+        <button id="clearSelection" title="選択解除" aria-label="選択解除">
+            <span class="material-symbols-rounded">deselect</span>
+        </button>
+        <button id="hideAll" title="全タイルを隠す" aria-label="全タイルを隠す">
+            <span class="material-symbols-rounded">layers_clear</span>
+        </button>
+        <button id="showAll" title="全タイルを表示" aria-label="全タイルを表示">
+            <span class="material-symbols-rounded">layers</span>
+        </button>
+        <button id="resetView" title="表示位置をリセット" aria-label="表示位置をリセット">
+            <span class="material-symbols-rounded">center_focus_strong</span>
+        </button>
+        <button id="saveStateJSON" , class="primary" title="部屋と表示状態をJSON保存" aria-label="部屋と表示状態をJSON保存">
+            <span class="material-symbols-rounded">save</span>
+        </button>
+        <button id="exportPNG" class="primary" title="PNG書き出し" aria-label="PNG書き出し">
+            <span class="material-symbols-rounded">download</span>
+        </button>
+
+
+        <div id="mouseInfo">
+            <div id="hoverNames">
+                <span id="hoverFolderName"></span>
+                <span id="hoverRoomName"></span>
+            </div>
+            <span id="roomSeparator">｜</span>
+            <span id="mouseCoords">[ -- | -- ]</span>
+        </div>
+
+        <div id="status">
+            <span id="hiddenStatus"></span>
+            <span class="status-separator">｜</span>
+            <span id="selectionStatus"></span>
+            <span class="status-separator">｜</span>
+            <span id="modeStatus"></span>
+            <span class="status-separator">｜</span>
+            <span id="scaleStatus"></span>
+        </div>
+
+
+    </div>
+    <div id="workspace">
+        <aside id="roomPanel">
+            <div class="room-panel-header">
+                <h2>RoomList</h2>
+                <button id="toggleRoomPanel" title="RoomListを折りたたむ">
+                    <span class="material-symbols-rounded">chevron_left</span>
+                </button>
+            </div>
+
+            <div id="roomPanelContent">
+                <div class="room-actions">
+                    <button id="createFolder" title="カテゴリを作成" aria-label="カテゴリを作成">
+                        <span class="material-symbols-rounded">create_new_folder</span>
+                    </button>
+                    <button id="createRoom" class="primary" title="選択タイルから部屋を作成" aria-label="選択タイルから部屋を作成">
+                        <span class="material-symbols-rounded">add_box</span>
+                    </button>
+                    <button id="createSubArea" title="選択タイルからサブエリアを作成" aria-label="サブエリアを作成">
+                        <span class="material-symbols-rounded">add_location_alt</span>
+                    </button>
+                    <button id="addToRoom" title="選択タイルを部屋に追加" aria-label="選択タイルを部屋に追加">
+                        <span class="material-symbols-rounded">add</span>
+                    </button>
+                    <button id="removeFromRoom" title="選択タイルを部屋から除外" aria-label="選択タイルを部屋から除外">
+                        <span class="material-symbols-rounded">remove</span>
+                    </button>
+                    <button id="addToIgnore" title="選択タイルの無視状態を切替" aria-label="選択タイルの無視状態を切替">
+                        <span class="material-symbols-rounded">block</span>
+                    </button>
+                </div>
+                <div id="roomList">
+                    <div class="room-empty">部屋はまだありません。</div>
+                </div>
+            </div>
+        </aside>
+
+        <div id="viewport">
+            <div id="stage">
+                <img id="map" src="SuperMetroidMapZebes.png" alt="Super Metroid map">
+                <img id="mapLod" src="SuperMetroidMapZebesSmall.png" alt="" draggable="false">
+                <div id="tiles"></div>
+                <div id="selectionBox"></div>
+            </div>
+        </div>
+    </div>
+    <div class="note">タイルの表示切替/選択: 左クリック ｜ 範囲選択: 左クリックでドラッグ ｜ 移動: 右クリックでドラッグ ｜ 拡大縮小: ホイール ｜ 表示タイルはブラウザに保存されます。
+    </div>
+
+    <dialog id="settings">
+        <h2 style="font-size:17px;margin:0 0 6px">基準グリッド設定</h2>
+        <p>画像左上を (0, 0) とした座標・サイズを入力してください。基準位置は最初のタイル（左上タイル）の左上座標です。</p>
+        <div class="settings-grid" style="margin-top:14px">
+            <label>基準X（px）<input id="originX" type="number" step="1"></label>
+            <label>基準Y（px）<input id="originY" type="number" step="1"></label>
+            <label>タイル幅（px）<input id="tileW" type="number" min="1" step="1"></label>
+            <label>タイル高さ（px）<input id="tileH" type="number" min="1" step="1"></label>
+            <label>列数<input id="cols" type="number" min="1" max="300" step="1"></label>
+            <label>行数<input id="rows" type="number" min="1" max="300" step="1"></label>
+        </div>
+        <p class="hint">例：画像上でタイトル画面の左上位置を測り、その座標を基準X・Yに指定します。1画面の実ピクセル寸法をタイル幅・高さに指定してください。</p>
+        <div class="dialog-actions"><button id="cancelSettings">キャンセル</button><button id="applySettings"
+                class="primary">適用・保存</button></div>
+    </dialog>
+
+    <script>
+        (() => {
+            // ==================================================
+            // 外部デフォルトデータ
+            // ==================================================
+
+            // 部屋・フォルダ・非表示タイルをまとめたJSONファイル。
+            // 使用しない場合は null にする。
+            // 例: './data/super-metroid-state.json'
+            const DEFAULT_STATE_URL = './SuperMetroid_MapState_Default.json';
+
+            const DEFAULT = { x: 0, y: 0, w: 256, h: 256, cols: 66, rows: 64 };
+            const saved = JSON.parse(localStorage.getItem('sm-grid-settings') || 'null');
+            let cfg = { ...DEFAULT, ...(saved || {}) };
+            let hidden = new Set(JSON.parse(localStorage.getItem('sm-hidden-tiles') || '[]'));
+            let ignored = new Set(
+                JSON.parse(localStorage.getItem('sm-ignored-tiles') || '[]')
+            );
+            let externalStateLoaded = false;
+
+            async function loadDefaultState() {
+                if (!DEFAULT_STATE_URL) return;
+
+                const keys = {
+                    rooms: 'sm-rooms',
+                    folders: 'sm-folders',
+                    hidden: 'sm-hidden-tiles',
+                    ignored: 'sm-ignored-tiles'
+                };
+
+                try {
+                    // JSONファイルを取得
+                    const response = await fetch(DEFAULT_STATE_URL, {
+                        cache: 'no-store'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(
+                            `JSONファイルを取得できませんでした。HTTP ${response.status}`
+                        );
+                    }
+
+                    // JSONとして解析
+                    const data = await response.json();
+
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                        throw new Error('JSONのルート形式が正しくありません。');
+                    }
+
+                    // 必須データの検証
+                    const requiredArrays = [
+                        'rooms',
+                        'folders',
+                        'hidden',
+                        'ignored'
+                    ];
+
+                    for (const key of requiredArrays) {
+                        if (!Array.isArray(data[key])) {
+                            throw new Error(
+                                `JSONに "${key}" 配列が存在しないか、形式が正しくありません。`
+                            );
+                        }
+                    }
+
+                    // 部屋データの検証
+                    data.rooms.forEach((room, index) => {
+                        if (
+                            !room ||
+                            typeof room !== 'object' ||
+                            !Array.isArray(room.tiles)
+                        ) {
+                            throw new Error(
+                                `rooms[${index}] の形式が正しくありません。`
+                            );
+                        }
+
+                        if (!Array.isArray(room.subAreas)) {
+                            room.subAreas = [];
+                        }
+
+                        room.subAreas.forEach((area, areaIndex) => {
+                            if (
+                                !area ||
+                                typeof area !== 'object' ||
+                                !Array.isArray(area.tiles)
+                            ) {
+                                throw new Error(
+                                    `rooms[${index}].subAreas[${areaIndex}] の形式が正しくありません。`
+                                );
+                            }
+                        });
+                    });
+
+                    // フォルダデータの検証
+                    data.folders.forEach((folder, index) => {
+                        if (
+                            !folder ||
+                            typeof folder !== 'object' ||
+                            typeof folder.id !== 'string'
+                        ) {
+                            throw new Error(
+                                `folders[${index}] の形式が正しくありません。`
+                            );
+                        }
+                    });
+
+                    // タイル番号の検証
+                    for (const key of ['hidden', 'ignored']) {
+                        if (!data[key].every(
+                            value => Number.isInteger(value) && value >= 0
+                        )) {
+                            throw new Error(
+                                `"${key}" に不正なタイル番号が含まれています。`
+                            );
+                        }
+                    }
+
+                    // ブラウザに保存されていない項目だけJSONから読み込む
+                    if (localStorage.getItem(keys.rooms) === null) {
+                        rooms = data.rooms;
+                        localStorage.setItem(keys.rooms, JSON.stringify(rooms));
+                    }
+
+                    if (localStorage.getItem(keys.folders) === null) {
+                        folders = data.folders;
+                        localStorage.setItem(keys.folders, JSON.stringify(folders));
+                    }
+
+                    if (localStorage.getItem(keys.hidden) === null) {
+                        hidden = new Set(data.hidden);
+                        localStorage.setItem(
+                            keys.hidden,
+                            JSON.stringify([...hidden])
+                        );
+                    }
+
+                    if (localStorage.getItem(keys.ignored) === null) {
+                        ignored = new Set(data.ignored);
+                        localStorage.setItem(
+                            keys.ignored,
+                            JSON.stringify([...ignored])
+                        );
+                    }
+
+                    externalStateLoaded = true;
+
+                } catch (error) {
+                    console.error(
+                        'デフォルトJSONの読み込みに失敗しました:',
+                        error
+                    );
+
+                    let message = error.message;
+
+                    if (location.protocol === 'file:') {
+                        message +=
+                            '\n\nHTMLを直接開いているため、JSONの読み込みが制限されている可能性があります。' +
+                            '\nLive ServerなどのローカルWebサーバー経由で開いてください。';
+                    }
+
+                    alert('デフォルトデータを読み込めませんでした。\n\n' + message);
+                }
+            }
+            const viewport = document.getElementById('viewport'),
+                stage = document.getElementById('stage');
+            const map = document.getElementById('map'),
+                tilesEl = document.getElementById('tiles');
+
+            const mapLod = document.getElementById('mapLod');
+
+            const LOD_SCALE_THRESHOLD = 0.12;
+            const LOD_RETURN_DELAY = 300;
+            let lodTimer = null;
+
+            function updateMapLOD() {
+                clearTimeout(lodTimer);
+
+                // 操作中は倍率に関係なくSmall画像を使用
+                map.style.display = 'none';
+                mapLod.style.display = 'block';
+
+                // 操作が終了してから一定時間後に元画像へ戻す
+                lodTimer = setTimeout(() => {
+                    map.style.display = 'block';
+                    mapLod.style.display = 'none';
+                }, LOD_RETURN_DELAY);
+            }
+
+
+            const toggleRoomOutlines = document.getElementById('toggleRoomOutlines');
+
+            let showRoomOutlines =
+                localStorage.getItem('sm-room-outlines') !== 'false';
+
+            function updateRoomOutlineVisibility() {
+                tilesEl.classList.toggle('room-outlines-hidden', !showRoomOutlines);
+
+                toggleRoomOutlines.title = showRoomOutlines
+                    ? '部屋の輪郭線を非表示'
+                    : '部屋の輪郭線を表示';
+                toggleRoomOutlines.setAttribute('aria-label', toggleRoomOutlines.title);
+            }
+            const toggleHiddenHighlight = document.getElementById('toggleHiddenHighlight');
+
+            let highlightHidden = false;
+
+            function updateHiddenHighlight() {
+                tilesEl.classList.toggle('highlight-hidden', highlightHidden);
+
+                toggleHiddenHighlight.classList.toggle('active', highlightHidden);
+
+                toggleHiddenHighlight.title = highlightHidden
+                    ? '非表示タイルのハイライトを解除'
+                    : '非表示タイルをハイライト';
+
+                toggleHiddenHighlight.setAttribute(
+                    'aria-label',
+                    toggleHiddenHighlight.title
+                );
+            }
+
+            toggleHiddenHighlight.onclick = () => {
+                highlightHidden = !highlightHidden;
+                updateHiddenHighlight();
+            };
+
+            updateHiddenHighlight();
+            toggleRoomOutlines.onclick = () => {
+                showRoomOutlines = !showRoomOutlines;
+                localStorage.setItem('sm-room-outlines', showRoomOutlines);
+                updateRoomOutlineVisibility();
+            };
+
+            updateRoomOutlineVisibility();
+            const selectionBox = document.getElementById('selectionBox'), status = document.getElementById('status');
+            const selected = new Set(); let cells = [], scale = 0.06, tx = 0, ty = 0, gesture = null, moved = false;
+            const hiddenStatus = document.getElementById('hiddenStatus');
+            const selectionStatus = document.getElementById('selectionStatus');
+            const modeStatus = document.getElementById('modeStatus');
+            const scaleStatus = document.getElementById('scaleStatus');
+            let roomEditMode = false;
+            let editLocked = true;
+
+            const lockEditBtn = document.getElementById('lockEditBtn');
+
+            function updateEditLock() {
+                document.body.classList.toggle('edit-locked', editLocked);
+                roomPanel.classList.toggle('locked', editLocked);
+
+                lockEditBtn.classList.toggle('active', editLocked);
+
+                lockEditBtn.innerHTML = `
+                    <span class="material-symbols-rounded">
+                        ${editLocked ? 'lock' : 'lock_open'}
+                    </span>
+                `;
+
+                lockEditBtn.title = editLocked
+                    ? '編集ロックを解除'
+                    : '編集をロック';
+
+                lockEditBtn.setAttribute('aria-label', lockEditBtn.title);
+
+                // ロック時は選択モードを解除
+                if (editLocked) {
+                    roomEditMode = false;
+                    selected.clear();
+
+                    const modeBtn = document.getElementById('modeBtn');
+                    modeBtn.classList.remove('active');
+                    modeBtn.innerHTML = `
+                        <span class="material-symbols-rounded">edit</span>
+                    `;
+                    modeBtn.title = '選択モード';
+                    modeBtn.setAttribute('aria-label', modeBtn.title);
+                }
+
+                renderSelection();
+                renderRooms();
+            }
+
+            lockEditBtn.onclick = () => {
+                editLocked = !editLocked;
+                updateEditLock();
+            };
+            let rooms = JSON.parse(localStorage.getItem('sm-rooms') || '[]');
+            let folders = JSON.parse(localStorage.getItem('sm-folders') || '[]');
+
+            function normalizeRooms() {
+                rooms.forEach(room => {
+                    if (!folders.some(folder => folder.id === room.folderId)) {
+                        room.folderId = null;
+                    }
+
+                    if (!Array.isArray(room.subAreas)) {
+                        room.subAreas = [];
+                    }
+                });
+            }
+
+            function saveFolders() {
+                localStorage.setItem('sm-folders', JSON.stringify(folders));
+            }
+            let selectedRoomId = null;
+            let draggedRoomId = null;
+            const roomPanel = document.getElementById('roomPanel');
+            const toggleRoomPanel = document.getElementById('toggleRoomPanel');
+
+            toggleRoomPanel.onclick = () => {
+                const collapsed = roomPanel.classList.toggle('collapsed');
+
+                toggleRoomPanel.innerHTML = `
+                    <span class="material-symbols-rounded">
+                        ${collapsed ? 'chevron_right' : 'chevron_left'}
+                    </span>
+                `;
+                toggleRoomPanel.title = collapsed
+                    ? 'RoomListを展開する'
+                    : 'RoomListを折りたたむ';
+            };
+            const mouseCoords = document.getElementById('mouseCoords');
+            const hoverRoomName = document.getElementById('hoverRoomName');
+            const hoverFolderName = document.getElementById('hoverFolderName');
+
+            function saveRooms() {
+                localStorage.setItem('sm-rooms', JSON.stringify(rooms));
+            }
+            function exportStateJSON() {
+                const data = {
+                    version: 1,
+                    rooms: rooms,
+                    folders: folders,
+                    hidden: [...hidden],
+                    ignored: [...ignored]
+                };
+
+                const blob = new Blob(
+                    [JSON.stringify(data, null, 2)],
+                    { type: 'application/json' }
+                );
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+
+                a.href = url;
+                a.download = 'SuperMetroid_MapState.json';
+                a.click();
+
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+
+            document.getElementById('saveStateJSON').onclick = exportStateJSON;
+            function getRoomForTile(index) {
+                return rooms.find(room => room.tiles.includes(index));
+            }
+
+            function getSubAreaForTile(index, room = getRoomForTile(index)) {
+                return room?.subAreas?.find(area => area.tiles.includes(index)) || null;
+            }
+
+            function getRoomForOutline(index) {
+                if (ignored.has(index)) return null;
+
+                const room = getRoomForTile(index);
+                if (!room || room.hidden) return null;
+
+                const subArea = getSubAreaForTile(index, room);
+                return subArea?.hidden ? null : room;
+            }
+
+            function isTileHidden(index) {
+                if (ignored.has(index)) return true;
+                const room = getRoomForTile(index);
+                const subArea = getSubAreaForTile(index, room);
+
+                return hidden.has(index) || !!room?.hidden || !!subArea?.hidden;
+            }
+
+            function updateTile(index) {
+                const cell = cells[index];
+                if (!cell) return;
+
+
+                cell.classList.toggle('hidden', isTileHidden(index));
+                cell.classList.toggle('ignored', ignored.has(index));
+
+                const room = getRoomForTile(index);
+                const outlineRoom = getRoomForOutline(index);
+                cell.classList.toggle('in-room', !!outlineRoom);
+                cell.classList.toggle(
+                    'target-room',
+                    !!outlineRoom && outlineRoom.id === selectedRoomId
+                );
+
+                if (!outlineRoom) {
+                    cell.style.border = 'none';
+                    return;
+                }
+
+                const x = index % cfg.cols;
+                const y = Math.floor(index / cfg.cols);
+                const folder = folders.find(f => f.id === outlineRoom.folderId);
+                const outlineColor = folder?.color || getComputedStyle(document.documentElement)
+                    .getPropertyValue('--color-accent').trim();
+                const line = `var(--room-outline-width) solid ${outlineColor}`;
+
+                cell.style.borderTop =
+                    y === 0 || getRoomForOutline(index - cfg.cols)?.id !== outlineRoom.id
+                        ? line : 'none';
+
+                cell.style.borderRight =
+                    x === cfg.cols - 1 || getRoomForOutline(index + 1)?.id !== outlineRoom.id
+                        ? line : 'none';
+
+                cell.style.borderBottom =
+                    y === cfg.rows - 1 || getRoomForOutline(index + cfg.cols)?.id !== outlineRoom.id
+                        ? line : 'none';
+
+                cell.style.borderLeft =
+                    x === 0 || getRoomForOutline(index - 1)?.id !== outlineRoom.id
+                        ? line : 'none';
+            }
+
+            function updateTiles(indices) {
+                const targets = new Set();
+
+                indices.forEach(index => {
+                    targets.add(index);
+
+                    const x = index % cfg.cols;
+                    const y = Math.floor(index / cfg.cols);
+
+                    if (x > 0) targets.add(index - 1);
+                    if (x < cfg.cols - 1) targets.add(index + 1);
+                    if (y > 0) targets.add(index - cfg.cols);
+                    if (y < cfg.rows - 1) targets.add(index + cfg.cols);
+                });
+
+                targets.forEach(updateTile);
+                render();
+            }
+            function selectRoom(roomId) {
+                if (selectedRoomId === roomId) {
+                    roomId = null;
+                }
+
+                const previousRoom = rooms.find(r => r.id === selectedRoomId);
+                selectedRoomId = roomId;
+                const nextRoom = rooms.find(r => r.id === selectedRoomId);
+
+                if (previousRoom) updateTiles(previousRoom.tiles);
+                if (nextRoom) updateTiles(nextRoom.tiles);
+
+                renderRooms();
+            }
+
+            function renderRooms() {
+                const list = document.getElementById('roomList');
+                list.replaceChildren();
+
+                let draggedRoom = null;
+
+                function createRoomItem(room) {
+                    const item = document.createElement('div');
+                    item.className = 'room-item' +
+                        (room.id === selectedRoomId ? ' active' : '');
+                    item.draggable = !editLocked;
+
+                    item.addEventListener('dragstart', e => {
+                        if (editLocked) return;
+                        draggedRoom = room;
+                        draggedRoomId = room.id;
+                        item.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+
+                    item.addEventListener('dragend', () => {
+                        draggedRoom = null;
+                        draggedRoomId = null;
+
+                        document.querySelectorAll('.room-item, .folder-item, .unfiled-header')
+                            .forEach(el => el.classList.remove('dragging', 'drag-over'));
+                    });
+
+                    item.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        if (!draggedRoom || draggedRoom.id === room.id) return;
+
+                        e.dataTransfer.dropEffect = 'move';
+                        item.classList.add('drag-over');
+                    });
+
+                    item.addEventListener('dragleave', () => {
+                        item.classList.remove('drag-over');
+                    });
+
+                    item.addEventListener('drop', e => {
+                        e.preventDefault();
+                        item.classList.remove('drag-over');
+
+                        if (!draggedRoom || draggedRoom.id === room.id) return;
+
+                        const fromIndex = rooms.findIndex(r => r.id === draggedRoom.id);
+                        if (fromIndex < 0) return;
+
+                        const [movedRoom] = rooms.splice(fromIndex, 1);
+                        const toIndex = rooms.findIndex(r => r.id === room.id);
+
+                        if (toIndex < 0) return;
+
+                        movedRoom.folderId = room.folderId ?? null;
+
+                        const rect = item.getBoundingClientRect();
+                        const insertAfter = e.clientY > rect.top + rect.height / 2;
+
+                        rooms.splice(
+                            toIndex + (insertAfter ? 1 : 0),
+                            0,
+                            movedRoom
+                        );
+
+                        saveRooms();
+                        renderRooms();
+                    });
+                    const select = document.createElement('button');
+                    select.innerHTML = `
+                        <span class="material-symbols-rounded">
+                            ${room.id === selectedRoomId ? 'radio_button_checked' : 'radio_button_unchecked'}
+                        </span>
+                    `;
+                    select.title = room.id === selectedRoomId
+                        ? '操作対象の部屋（選択中）'
+                        : '操作対象の部屋に選択';
+                    select.setAttribute('aria-label', select.title);
+                    select.onclick = () => selectRoom(room.id);
+                    const name = document.createElement('button');
+                    name.className = 'room-name';
+                    name.textContent = room.name;
+                    name.title = 'クリックして部屋名を変更';
+
+                    name.onclick = () => {
+                        if (editLocked) return;
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = room.name;
+                        input.className = 'room-name-input';
+
+                        name.replaceWith(input);
+                        input.focus();
+                        input.select();
+
+                        let finished = false;
+
+                        const finishEdit = save => {
+                            if (finished) return;
+                            finished = true;
+
+                            if (save && input.value.trim()) {
+                                room.name = input.value.trim();
+                                saveRooms();
+                            }
+
+                            renderRooms();
+                        };
+
+                        input.addEventListener('keydown', e => {
+                            if (e.key === 'Enter') finishEdit(true);
+                            if (e.key === 'Escape') finishEdit(false);
+                        });
+
+                        input.addEventListener('blur', () => finishEdit(true));
+                    };
+
+                    const visibility = document.createElement('button');
+                    visibility.className = 'visibility-toggle';
+                    visibility.innerHTML = `
+                        <span class="material-symbols-rounded">
+                            ${room.hidden ? 'visibility' : 'visibility_off'}
+                        </span>
+                    `;
+                    visibility.title = room.hidden ? '部屋を表示' : '部屋を隠す';
+                    visibility.setAttribute('aria-label', visibility.title);
+
+                    visibility.onclick = () => {
+                        room.hidden = !room.hidden;
+                        saveRooms();
+                        updateTiles(room.tiles);
+                        renderRooms();
+                    };
+
+                    const remove = document.createElement('button');
+                    remove.innerHTML = `
+                        <span class="material-symbols-rounded">delete</span>
+                    `;
+                    remove.title = 'この部屋を削除';
+                    remove.setAttribute('aria-label', remove.title);
+
+                    remove.onclick = () => {
+                        if (editLocked) return;
+                        if (!confirm(`部屋「${room.name}」を削除しますか？\nタイルの表示状態は維持されます。`)) {
+                            return;
+                        }
+
+                        rooms = rooms.filter(r => r.id !== room.id);
+
+                        if (selectedRoomId === room.id) {
+                            selectedRoomId = null;
+                        }
+
+                        room.tiles.forEach(updateTile);
+                        saveRooms();
+                        renderRooms();
+                    };
+
+
+                    // サブエリア一覧
+                    const subAreaList = document.createElement('div');
+                    subAreaList.className = 'subarea-list';
+                    subAreaList.hidden = true;
+
+                    const subareaToggle = document.createElement('button');
+                    subareaToggle.className = 'subarea-toggle';
+                    subareaToggle.type = 'button';
+                    subareaToggle.title = 'サブエリアを展開';
+                    subareaToggle.setAttribute('aria-label', 'サブエリアを展開');
+                    subareaToggle.setAttribute('aria-expanded', 'false');
+                    subareaToggle.innerHTML = `
+                        <span class="material-symbols-rounded">chevron_right</span>
+                    `;
+                    subareaToggle.hidden = !room.subAreas?.length;
+
+                    subareaToggle.onclick = (e) => {
+                        e.stopPropagation();
+
+                        const expanded = subAreaList.hidden;
+
+                        subAreaList.hidden = !expanded;
+                        item.classList.toggle('subareas-expanded', expanded);
+
+                        subareaToggle.setAttribute('aria-expanded', String(expanded));
+                        subareaToggle.title = expanded
+                            ? 'サブエリアを折りたたむ'
+                            : 'サブエリアを展開';
+                        subareaToggle.setAttribute('aria-label', subareaToggle.title);
+                    };
+
+                    room.subAreas?.forEach(area => {
+                        const subAreaItem = document.createElement('div');
+                        subAreaItem.className = 'subarea-item';
+                        subAreaItem.dataset.subareaId = area.id;
+
+                        const areaName = document.createElement('button');
+                        areaName.className = 'subarea-name';
+                        areaName.textContent = `${room.name}-${area.name}`;
+                        areaName.title = 'クリックしてサブエリア名を変更';
+
+                        areaName.onclick = (e) => {
+                            if (editLocked) return;
+                            e.stopPropagation();
+
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = area.name;
+                            input.className = 'room-name-input';
+
+                            areaName.replaceWith(input);
+                            input.focus();
+                            input.select();
+
+                            let finished = false;
+
+                            const finishEdit = save => {
+                                if (finished) return;
+                                finished = true;
+
+                                if (save && input.value.trim()) {
+                                    area.name = input.value.trim();
+                                    saveRooms();
+                                }
+
+                                renderRooms();
+                            };
+
+                            input.addEventListener('keydown', e => {
+                                if (e.key === 'Enter') finishEdit(true);
+                                if (e.key === 'Escape') finishEdit(false);
+                            });
+
+                            input.addEventListener('blur', () => finishEdit(true));
+                        };
+
+                        const areaVisibility = document.createElement('button');
+                        areaVisibility.className = 'visibility-toggle';
+                        areaVisibility.innerHTML = `
+                            <span class="material-symbols-rounded">
+                                ${area.hidden ? 'visibility' : 'visibility_off'}
+                            </span>
+                        `;
+                        areaVisibility.title = area.hidden
+                            ? 'サブエリアを表示'
+                            : 'サブエリアを隠す';
+
+                        areaVisibility.onclick = (e) => {
+                            e.stopPropagation();
+
+                            // 現在の展開状態を保持
+                            const wasExpanded = !subAreaList.hidden;
+
+                            area.hidden = !area.hidden;
+                            saveRooms();
+                            updateTiles(area.tiles);
+                            renderRooms();
+
+                            // 再描画後も展開状態を復元
+                            if (wasExpanded) {
+                                const updatedItem = [...document.querySelectorAll('.room-item')]
+                                    .find(el => el.querySelector('.subarea-toggle')?.hidden === false &&
+                                        el.querySelector('.room-name')?.textContent === room.name);
+
+                                if (updatedItem) {
+                                    const updatedList = updatedItem.querySelector('.subarea-list');
+                                    updatedList.hidden = false;
+                                    updatedItem.classList.add('subareas-expanded');
+
+                                    const toggle = updatedItem.querySelector('.subarea-toggle');
+                                    toggle.setAttribute('aria-expanded', 'true');
+                                    toggle.title = 'サブエリアを折りたたむ';
+                                    toggle.setAttribute('aria-label', toggle.title);
+                                }
+                            }
+                        };
+
+                        const areaRemove = document.createElement('button');
+                        areaRemove.innerHTML = `
+                            <span class="material-symbols-rounded">delete</span>
+                        `;
+                        areaRemove.title = 'サブエリアを削除';
+
+                        areaRemove.onclick = (e) => {
+                            if (editLocked) return;
+                            e.stopPropagation();
+
+                            if (!confirm(`サブエリア「${room.name}-${area.name}」を削除しますか？\nタイルは親部屋に残ります。`)) {
+                                return;
+                            }
+
+                            room.subAreas = room.subAreas.filter(a => a.id !== area.id);
+
+                            saveRooms();
+                            updateTiles(area.tiles);
+                            renderRooms();
+                        };
+
+                        subAreaItem.append(areaName, areaVisibility, areaRemove);
+                        subAreaList.appendChild(subAreaItem);
+                    });
+
+                    item.append(
+                        subareaToggle,
+                        select,
+                        name,
+                        visibility,
+                        remove,
+                        subAreaList
+                    );
+
+                    return item;
+
+                }
+
+                function createFolderDropTarget(folderId) {
+                    const target = document.createElement('div');
+
+                    target.addEventListener('dragover', e => {
+                        if (editLocked) return;
+                        if (!draggedRoom) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        target.classList.add('drag-over');
+                    });
+
+                    target.addEventListener('dragleave', () => {
+                        target.classList.remove('drag-over');
+                    });
+
+                    target.addEventListener('drop', e => {
+                        if (editLocked) return;
+                        e.preventDefault();
+                        target.classList.remove('drag-over');
+
+                        if (!draggedRoom) return;
+
+                        draggedRoom.folderId = folderId;
+                        saveRooms();
+                        renderRooms();
+                    });
+
+                    return target;
+                }
+
+                function createFolderItem(folder) {
+                    const wrapper = document.createElement('div');
+
+                    const header = document.createElement('div');
+                    header.className = 'folder-item';
+                    header.style.borderColor = folder.color || '#43516a';
+                    header.addEventListener('contextmenu', e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        toggleFolderVisibility(folder);
+                    });
+                    const folderRooms = rooms.filter(room => room.folderId === folder.id);
+
+                    const toggle = document.createElement('button');
+                    toggle.className = 'folder-toggle';
+                    toggle.innerHTML = `
+                        <span class="material-symbols-rounded">
+                        ${folder.collapsed ? 'folder' : 'folder_open'}
+                        </span>
+                        <span class="folder-name"></span>
+                        <span class="folder-count">${folderRooms.length}</span>
+                    `;
+                    toggle.querySelector('.folder-name').textContent = folder.name;
+                    toggle.title = 'クリックしてフォルダを開閉';
+
+                    toggle.onclick = () => {
+                        folder.collapsed = !folder.collapsed;
+                        saveFolders();
+                        renderRooms();
+                    };
+
+                    const color = document.createElement('input');
+                    color.type = 'color';
+                    color.className = 'folder-color';
+                    color.value = folder.color || '#43516a';
+                    color.title = 'フォルダの縁取り色を変更';
+
+                    color.oninput = () => {
+                        if (editLocked) return;
+                        folder.color = color.value;
+                        header.style.borderColor = color.value;
+                        dropTarget.style.setProperty('--folder-color', color.value);
+
+                        saveFolders();
+
+                        folderRooms.forEach(room => {
+                            updateTiles(room.tiles);
+                        });
+                    };
+
+                    const rename = document.createElement('button');
+                    rename.innerHTML = `
+                        <span class="material-symbols-rounded">edit</span>
+                    `;
+                    rename.title = 'フォルダ名を変更';
+
+                    rename.onclick = () => {
+                        if (editLocked) return;
+                        const name = prompt('フォルダ名を入力してください。', folder.name);
+                        if (!name || !name.trim()) return;
+
+                        folder.name = name.trim();
+                        saveFolders();
+                        renderRooms();
+                    };
+
+                    const remove = document.createElement('button');
+                    remove.innerHTML = `
+                        <span class="material-symbols-rounded">delete</span>
+                    `;
+                    remove.title = 'フォルダを削除';
+
+                    remove.onclick = () => {
+                        if (editLocked) return;
+                        if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n所属する部屋は未分類に移動します。`)) {
+                            return;
+                        }
+
+                        rooms.forEach(room => {
+                            if (room.folderId === folder.id) {
+                                room.folderId = null;
+                            }
+                        });
+
+                        folders = folders.filter(f => f.id !== folder.id);
+
+                        saveRooms();
+                        saveFolders();
+                        renderRooms();
+                    };
+
+                    header.append(toggle, color, rename, remove);
+
+                    const dropTarget = createFolderDropTarget(folder.id);
+                    dropTarget.className = 'folder-rooms';
+                    dropTarget.style.setProperty(
+                        '--folder-color',
+                        folder.color || '#43516a'
+                    );
+
+                    if (!folder.collapsed) {
+                        if (folderRooms.length) {
+                            folderRooms.forEach(room => {
+                                dropTarget.appendChild(createRoomItem(room));
+                            });
+                        } else {
+                            const empty = document.createElement('div');
+                            empty.className = 'folder-empty';
+                            empty.textContent = '？ ・ 。 ・ ？';
+                            dropTarget.appendChild(empty);
+                        }
+                    }
+
+                    wrapper.append(header);
+                    if (!folder.collapsed) wrapper.append(dropTarget);
+
+                    const headerDrop = createFolderDropTarget(folder.id);
+                    headerDrop.appendChild(wrapper);
+
+                    return headerDrop;
+                }
+
+                folders.forEach(folder => {
+                    list.appendChild(createFolderItem(folder));
+                });
+
+                const unfiledRooms = rooms.filter(room => !room.folderId);
+
+                const unfiledHeader = document.createElement('div');
+                unfiledHeader.className = 'unfiled-header';
+                unfiledHeader.textContent = `未分類 (${unfiledRooms.length})`;
+
+                const unfiledDrop = createFolderDropTarget(null);
+                unfiledDrop.appendChild(unfiledHeader);
+
+                unfiledRooms.forEach(room => {
+                    unfiledDrop.appendChild(createRoomItem(room));
+                });
+
+                list.appendChild(unfiledDrop);
+
+                if (!rooms.length && !folders.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'room-empty';
+                    empty.textContent = '部屋・フォルダはまだありません。';
+                    list.appendChild(empty);
+                }
+            }
+
+
+            function createRoom() {
+                if (editLocked) return;
+                if (!selected.size) {
+                    alert('部屋にするタイルを選択してください。');
+                    return;
+                }
+
+                const occupied = [...selected].filter(i => getRoomForTile(i));
+                if (occupied.length) {
+                    alert(`${occupied.length}個のタイルが既に別の部屋に所属しています。\n既存の部屋から除外してから作成してください。`);
+                    return;
+                }
+
+                const name = prompt('部屋名を入力してください。');
+                if (!name || !name.trim()) return;
+
+                const room = {
+                    id: crypto.randomUUID(),
+                    name: name.trim(),
+                    hidden: false,
+                    tiles: [...selected].sort((a, b) => a - b)
+                };
+
+                rooms.push(room);
+                selectedRoomId = room.id;
+                saveRooms();
+                room.tiles.forEach(updateTile);
+                renderRooms();
+            }
+
+            function addSelectedToRoom() {
+                if (editLocked) return;
+                const room = rooms.find(r => r.id === selectedRoomId);
+                if (!room) {
+                    alert('追加先の部屋を選択してください。');
+                    return;
+                }
+                if (!selected.size) {
+                    alert('追加するタイルを選択してください。');
+                    return;
+                }
+
+                const occupied = [...selected].filter(i => {
+                    const owner = getRoomForTile(i);
+                    return owner && owner.id !== room.id;
+                });
+
+                if (occupied.length) {
+                    alert(`${occupied.length}個のタイルは別の部屋に所属しています。`);
+                    return;
+                }
+
+                selected.forEach(i => {
+                    if (!room.tiles.includes(i)) room.tiles.push(i);
+                });
+
+                room.tiles.sort((a, b) => a - b);
+                saveRooms();
+                updateTiles([...selected]);
+                renderRooms();
+            }
+
+            function removeSelectedFromRoom() {
+                if (editLocked) return;
+                const room = rooms.find(r => r.id === selectedRoomId);
+
+                if (!room) {
+                    alert('除外元の部屋を選択してください。');
+                    return;
+                }
+
+                if (!selected.size) {
+                    alert('除外するタイルを選択してください。');
+                    return;
+                }
+
+                const removed = [...selected].filter(i => room.tiles.includes(i));
+
+                if (!removed.length) {
+                    alert('選択したタイルは、操作対象の部屋に所属していません。');
+                    return;
+                }
+
+                room.tiles = room.tiles.filter(i => !selected.has(i));
+
+                saveRooms();
+                updateTiles(removed);
+                renderRooms();
+            }
+            function toggleFolderVisibility(folder) {
+                const folderRooms = rooms.filter(
+                    room => room.folderId === folder.id
+                );
+
+                if (!folderRooms.length) return;
+
+                // 全部屋が非表示なら表示、それ以外なら非表示
+                const shouldShow = folderRooms.every(room => room.hidden);
+
+                folderRooms.forEach(room => {
+                    room.hidden = !shouldShow;
+
+                    // サブエリアも同じ表示状態に統一
+                    room.subAreas?.forEach(area => {
+                        area.hidden = !shouldShow;
+                    });
+
+                    updateTiles(room.tiles);
+                });
+
+                saveRooms();
+                renderRooms();
+            }
+
+            function createFolder() {
+                if (editLocked) return;
+                const name = prompt('カテゴリ名を入力してください。');
+                if (!name || !name.trim()) return;
+
+                folders.push({
+                    id: crypto.randomUUID(),
+                    name: name.trim(),
+                    color: '#43516a',
+                    collapsed: false
+                });
+
+                saveFolders();
+                renderRooms();
+            }
+            function createSubArea() {
+                if (editLocked) return;
+                const room = rooms.find(r => r.id === selectedRoomId);
+
+                if (!room) {
+                    alert('親となる部屋を選択してください。');
+                    return;
+                }
+
+                if (!selected.size) {
+                    alert('サブエリアにするタイルを選択してください。');
+                    return;
+                }
+
+                const invalid = [...selected].filter(index =>
+                    getRoomForTile(index)?.id !== room.id
+                );
+
+                if (invalid.length) {
+                    alert(`${invalid.length}個のタイルが選択中の親部屋に所属していません。`);
+                    return;
+                }
+
+                const occupied = [...selected].filter(index =>
+                    getSubAreaForTile(index, room)
+                );
+
+                if (occupied.length) {
+                    alert(`${occupied.length}個のタイルは既に別のサブエリアに所属しています。`);
+                    return;
+                }
+
+                const name = prompt('サブエリア名を入力してください。');
+                if (!name || !name.trim()) return;
+
+                if (!room.subAreas) room.subAreas = [];
+
+                const area = {
+                    id: crypto.randomUUID(),
+                    name: name.trim(),
+                    hidden: true,
+                    tiles: [...selected].sort((a, b) => a - b)
+                };
+
+                room.subAreas.push(area);
+
+                saveRooms();
+                updateTiles(area.tiles);
+                renderRooms();
+            }
+
+            document.getElementById('modeBtn').onclick = () => {
+                if (editLocked) return;
+
+                roomEditMode = !roomEditMode;
+
+                const button = document.getElementById('modeBtn');
+                button.classList.toggle('active', roomEditMode);
+                button.innerHTML = `
+                    <span class="material-symbols-rounded">
+                        ${roomEditMode ? 'map' : 'edit'}
+                    </span>
+                `;
+                button.title = roomEditMode ? '通常モードに戻る' : '選択モード';
+                button.setAttribute('aria-label', button.title);
+
+                render()
+            };
+
+            document.getElementById('createFolder').onclick = createFolder;
+            document.getElementById('createRoom').onclick = createRoom;
+            document.getElementById('createSubArea').onclick = createSubArea;
+            document.getElementById('addToRoom').onclick = addSelectedToRoom;
+            document.getElementById('removeFromRoom').onclick = removeSelectedFromRoom;
+            document.getElementById('addToIgnore').onclick = () => {
+                if (editLocked || selected.size === 0) return;
+
+                // 選択されたタイルごとにIgnore状態を反転
+                selected.forEach(index => {
+                    if (ignored.has(index)) {
+                        ignored.delete(index);
+                    } else {
+                        ignored.add(index);
+                    }
+                });
+
+                saveIgnored();
+                updateTiles([...selected]);
+            };
+
+            const count = () => cfg.cols * cfg.rows;
+            function buildGrid() {
+                tilesEl.replaceChildren(); cells = []; selected.clear();
+                tilesEl.style.left = cfg.x + 'px'; tilesEl.style.top = cfg.y + 'px';
+                tilesEl.style.width = (cfg.cols * cfg.w) + 'px'; tilesEl.style.height = (cfg.rows * cfg.h) + 'px';
+                tilesEl.style.gridTemplateColumns = `repeat(${cfg.cols},${cfg.w}px)`;
+                tilesEl.style.gridTemplateRows = `repeat(${cfg.rows},${cfg.h}px)`;
+                const frag = document.createDocumentFragment();
+                for (let i = 0; i < count(); i++) {
+                    const c = document.createElement('div');
+                    c.className = 'tile';
+                    c.dataset.i = i;
+                    c.title = `列 ${i % cfg.cols + 1} / 行 ${Math.floor(i / cfg.cols) + 1}`;
+
+                    if (isTileHidden(i)) c.classList.add('hidden');
+                    if (ignored.has(i)) c.classList.add('ignored');
+                    if (getRoomForTile(i)) c.classList.add('in-room');
+
+                    frag.appendChild(c);
+                    cells.push(c);
+                }
+                tilesEl.appendChild(frag);
+
+                // 保存されている部屋の輪郭線を初期描画
+                rooms.forEach(room => {
+                    room.tiles.forEach(updateTile);
+                });
+
+                renderSelection();
+            }
+            function saveHidden() { localStorage.setItem('sm-hidden-tiles', JSON.stringify([...hidden])); }
+            function saveCfg() { localStorage.setItem('sm-grid-settings', JSON.stringify(cfg)); }
+            function saveIgnored() {
+                localStorage.setItem(
+                    'sm-ignored-tiles',
+                    JSON.stringify([...ignored])
+                );
+            }
+            function render() {
+                stage.style.transform = `translate3d(${tx}px,${ty}px,0) scale(${scale})`;
+
+                tilesEl.style.setProperty(
+                    '--room-outline-width',
+                    `${Math.max(1, 2 / scale)}px`
+                );
+                tilesEl.style.setProperty(
+                    '--target-room-outline-width',
+                    `${Math.max(1, 3 / scale)}px`
+                );
+
+                const ignoredCount = ignored.size;
+                const totalCount = count() - ignoredCount;
+
+                const hiddenCount = cells.reduce(
+                    (total, cell, index) =>
+                        total + (!ignored.has(index) && isTileHidden(index) ? 1 : 0),
+                    0
+                );
+
+                const discoveredCount = totalCount - hiddenCount;
+
+                const pad = (value, width) =>
+                    String(value).padStart(width, ' ');
+
+                hiddenStatus.textContent =
+                    `発見済み : ${pad(discoveredCount.toLocaleString(), 5)} / ${pad(totalCount.toLocaleString(), 5)}`;
+
+                selectionStatus.textContent =
+                    `選択 : ${pad(selected.size.toLocaleString(), 5)}`;
+
+                modeStatus.textContent =
+                    editLocked ? '閲覧モード' :
+                        roomEditMode ? '選択モード' : '通常モード';
+
+                scaleStatus.textContent =
+                    `${pad(Math.round(scale * 100), 3)}%`;
+            }
+            function renderSelection() { for (let i = 0; i < cells.length; i++)cells[i].classList.toggle('selected', selected.has(i)); render(); }
+            function setHidden(i, on) {
+                if (i < 0 || i >= count()) return;
+                if (on) hidden.add(i);
+                else hidden.delete(i);
+                updateTile(i);
+            }
+            function clearSelection() { selected.clear(); renderSelection() }
+            function point(e) { const r = stage.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale } }
+            function toCell(p) { return { x: Math.floor((p.x - cfg.x) / cfg.w), y: Math.floor((p.y - cfg.y) / cfg.h) } }
+            function selectRect(a, b, append = false) {
+                const p = toCell(a), q = toCell(b);
+                const x1 = Math.max(0, Math.min(p.x, q.x));
+                const x2 = Math.min(cfg.cols - 1, Math.max(p.x, q.x));
+                const y1 = Math.max(0, Math.min(p.y, q.y));
+                const y2 = Math.min(cfg.rows - 1, Math.max(p.y, q.y));
+
+                if (!append) selected.clear();
+
+                for (let y = y1; y <= y2; y++) {
+                    for (let x = x1; x <= x2; x++) {
+                        selected.add(y * cfg.cols + x);
+                    }
+                }
+
+                renderSelection();
+            }
+
+            tilesEl.addEventListener('pointerdown', e => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+
+                const p = point(e);
+                gesture = {
+                    type: editLocked ? 'locked-toggle' : 'select',
+                    start: p,
+                    last: p,
+                    index: Number(e.target.dataset.i),
+                    sx: e.clientX,
+                    sy: e.clientY,
+                    shift: e.shiftKey,
+                    ctrl: e.ctrlKey || e.metaKey
+                };
+
+                moved = false;
+                tilesEl.setPointerCapture(e.pointerId);
+            });
+
+            tilesEl.addEventListener('pointermove', e => {
+                if (!gesture || gesture.type === 'pan') return;
+
+                if (Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) > 5) {
+                    moved = true;
+                }
+
+                if (gesture.type !== 'select') return;
+
+                gesture.last = point(e);
+
+                if (moved) {
+                    const a = gesture.start, b = gesture.last;
+                    selectionBox.style.display = 'block';
+                    selectionBox.style.left = Math.min(a.x, b.x) + 'px';
+                    selectionBox.style.top = Math.min(a.y, b.y) + 'px';
+                    selectionBox.style.width = Math.abs(a.x - b.x) + 'px';
+                    selectionBox.style.height = Math.abs(a.y - b.y) + 'px';
+                }
+            });
+
+            tilesEl.addEventListener('pointerup', () => {
+                if (!gesture) return;
+
+                const g = gesture;
+                gesture = null;
+                selectionBox.style.display = 'none';
+
+                if (editLocked) {
+                    // 閲覧モードはクリックした対象の表示状態を切り替える
+                    if (!moved && g.index >= 0 && g.index < count()) {
+                        const room = getRoomForTile(g.index);
+
+                        if (room) {
+                            const subArea = getSubAreaForTile(g.index, room);
+
+                            if (subArea) {
+                                // サブエリアに所属している場合はサブエリア単位で切り替え
+                                subArea.hidden = !subArea.hidden;
+
+                                const subAreaItem = document.querySelector(
+                                    `.subarea-item[data-subarea-id="${subArea.id}"]`
+                                );
+
+                                const visibility = subAreaItem?.querySelector('.visibility-toggle');
+
+                                if (visibility) {
+                                    visibility.innerHTML = `
+                                        <span class="material-symbols-rounded">
+                                            ${subArea.hidden ? 'visibility' : 'visibility_off'}
+                                        </span>
+                                    `;
+                                    visibility.title = subArea.hidden
+                                        ? 'サブエリアを表示'
+                                        : 'サブエリアを隠す';
+                                }
+
+                                saveRooms();
+                                updateTiles(subArea.tiles);
+
+                            } else {
+                                // サブエリアに所属していない場合は親部屋単位で切り替え
+                                room.hidden = !room.hidden;
+
+                                const roomItem = document.querySelector(
+                                    `.room-item[data-room-id="${room.id}"]`
+                                );
+
+                                const visibility = roomItem?.querySelector(
+                                    ':scope > .visibility-toggle'
+                                );
+
+                                if (visibility) {
+                                    visibility.innerHTML = `
+                                        <span class="material-symbols-rounded">
+                                            ${room.hidden ? 'visibility' : 'visibility_off'}
+                                        </span>
+                                    `;
+                                    visibility.title = room.hidden
+                                        ? '部屋を表示'
+                                        : '部屋を隠す';
+                                }
+
+                                saveRooms();
+                                updateTiles(room.tiles);
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                if (moved) {
+                    selectRect(g.start, g.last, g.shift || g.ctrl);
+                    return;
+                }
+
+                if (roomEditMode) {
+                    if (g.ctrl) {
+                        if (selected.has(g.index)) selected.delete(g.index);
+                        else selected.add(g.index);
+                    } else if (g.shift) {
+                        selected.add(g.index);
+                    } else {
+                        selected.clear();
+                        selected.add(g.index);
+                    }
+                    renderSelection();
+                } else {
+                    setHidden(g.index, !hidden.has(g.index));
+                    selected.clear();
+                    selected.add(g.index);
+                    saveHidden();
+                    renderSelection();
+                }
+            });
+
+            tilesEl.addEventListener('pointercancel', () => {
+                gesture = null;
+                selectionBox.style.display = 'none';
+            });
+            viewport.addEventListener('pointermove', e => {
+                const p = point(e);
+                const cell = toCell(p);
+
+                const inside =
+                    cell.x >= 0 &&
+                    cell.x < cfg.cols &&
+                    cell.y >= 0 &&
+                    cell.y < cfg.rows;
+
+                mouseCoords.textContent = inside
+                    ? `[ ${String(cell.x).padStart(2)} | ${String(cell.y).padStart(2)} ]`
+                    : '[ -- | -- ]';
+
+                const index = cell.y * cfg.cols + cell.x;
+
+                // 範囲外または非表示タイルの場合は部屋名・フォルダ名を表示しない
+                const visible = inside && !isTileHidden(index);
+
+                const room = visible
+                    ? getRoomForTile(index)
+                    : null;
+
+                hoverRoomName.textContent = room ? room.name : '';
+
+                const folder = room
+                    ? folders.find(f => f.id === room.folderId)
+                    : null;
+
+                hoverFolderName.textContent = folder ? folder.name + ' / ' : '';
+            });
+
+            viewport.addEventListener('pointerleave', () => {
+                hoverFolderName.textContent = '';
+                hoverRoomName.textContent = '';
+                mouseCoords.textContent = '[ -- | -- ]';
+            });
+            viewport.addEventListener('contextmenu', e => e.preventDefault());
+            viewport.addEventListener('pointerdown', e => {
+                // 右ボタンを押している間は、タイル上を含むどこからでもマップをパンできる。
+                if (e.button === 2) { e.preventDefault(); gesture = { type: 'pan', x: e.clientX, y: e.clientY, tx, ty }; viewport.classList.add('grabbing'); viewport.setPointerCapture(e.pointerId); return; }
+                // 左ボタンは従来どおり、空白部分のみパン。
+                if (e.target.closest('.tile') || e.button !== 0) return;
+                gesture = { type: 'pan', x: e.clientX, y: e.clientY, tx, ty }; viewport.classList.add('grabbing'); viewport.setPointerCapture(e.pointerId);
+            });
+            viewport.addEventListener('pointermove', e => { if (!gesture || gesture.type !== 'pan') return; tx = gesture.tx + e.clientX - gesture.x; ty = gesture.ty + e.clientY - gesture.y; render() });
+            viewport.addEventListener('pointerup', () => { gesture = null; viewport.classList.remove('grabbing') });
+            viewport.addEventListener('pointercancel', () => { gesture = null; viewport.classList.remove('grabbing') });
+            viewport.addEventListener('wheel', e => {
+                e.preventDefault();
+                const r = viewport.getBoundingClientRect(),
+                    px = e.clientX - r.left,
+                    py = e.clientY - r.top,
+                    wx = (px - tx) / scale, wy = (py - ty) / scale;
+                const next = Math.max(.04, Math.min(2, scale * Math.exp(-e.deltaY * .0012)));
+                tx = px - wx * next;
+                ty = py - wy * next;
+                scale = next;
+                updateMapLOD();
+                render();
+            }, { passive: false });
+            document.getElementById('hideSelected').onclick = () => {
+                if (editLocked) return;
+                selected.forEach(i => setHidden(i, true));
+                saveHidden();
+                render();
+            };
+
+            document.getElementById('showSelected').onclick = () => {
+                if (editLocked) return;
+                selected.forEach(i => setHidden(i, false));
+                saveHidden();
+                render();
+            };
+            document.getElementById('clearSelection').onclick = clearSelection;
+            document.getElementById('hideAll').onclick = () => {
+                if (editLocked) return;
+                hidden = new Set(Array.from({ length: count() }, (_, i) => i));
+                saveHidden();
+                cells.forEach((_, i) => updateTile(i));
+            };
+
+            document.getElementById('showAll').onclick = () => {
+                if (editLocked) return;
+                hidden.clear();
+                saveHidden();
+                cells.forEach((_, i) => updateTile(i));
+            };
+            function resetView() {
+                const vw = viewport.clientWidth,
+                    vh = viewport.clientHeight,
+                    contentW = Math.max(
+                        map.naturalWidth || 16896,
+                        cfg.x + cfg.cols * cfg.w),
+                    contentH = Math.max(
+                        map.naturalHeight || 14336,
+                        cfg.y + cfg.rows * cfg.h
+                    );
+                scale = Math.min((vw - 30) / contentW, (vh - 30) / contentH);
+                scale = Math.max(.04, Math.min(scale, .12));
+                tx = (vw - contentW * scale) / 2; ty = (vh - contentH * scale) / 2; render()
+            }
+            document.getElementById('resetView').onclick = resetView;
+            const dialog = document.getElementById('settings');
+            const fields = { x: 'originX', y: 'originY', w: 'tileW', h: 'tileH', cols: 'cols', rows: 'rows' };
+            document.getElementById('settingsBtn').onclick = () => { if (editLocked) return; for (const k in fields) document.getElementById(fields[k]).value = cfg[k]; dialog.showModal() };
+            document.getElementById('cancelSettings').onclick = () => dialog.close();
+            document.getElementById('applySettings').onclick = () => {
+                const next = {}; for (const k in fields) next[k] = Number(document.getElementById(fields[k]).value);
+                if (Object.values(next).some(v => !Number.isFinite(v)) || next.w <= 0 || next.h <= 0 || next.cols < 1 || next.rows < 1 || next.cols > 300 || next.rows > 300) { alert('数値を正しく入力してください。タイル幅・高さ・列数・行数は1以上が必要です。'); return }
+                const geometryChanged = Object.keys(next).some(k => next[k] !== cfg[k]);
+                const dimensionsChanged = next.cols !== cfg.cols || next.rows !== cfg.rows;
+                cfg = next;
+                // グリッドの行列数が変わるとタイル番号と位置の対応が変わるため、その場合のみ表示状態を初期化。
+                if (dimensionsChanged) {
+                    hidden.clear();
+                    rooms = [];
+                    selectedRoomId = null;
+                    saveHidden();
+                    saveRooms();
+                }
+                saveCfg(); buildGrid(); resetView(); dialog.close();
+            };
+            map.addEventListener('load', () => { if (!saved) resetView() });
+            map.addEventListener('error', () => { status.textContent = 'マップ画像を読み込めません。画像配信元への接続を確認してください。' });
+            (async () => {
+                await loadDefaultState();
+
+                normalizeRooms();
+
+                buildGrid();
+                renderRooms();
+                updateEditLock();
+                resetView();
+            })();
+            window.addEventListener('resize', () => { });
+            document.getElementById("exportPNG").onclick = exportMapPNG;
+            async function exportMapPNG() {
+                const width = map.naturalWidth;
+                const height = map.naturalHeight;
+
+                if (!width || !height) {
+                    alert("マップ画像が読み込まれていません。");
+                    return;
+                }
+
+                // 出力用Canvas
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext("2d");
+
+                // 元画像を描画
+                ctx.drawImage(map, 0, 0);
+
+                // 非表示タイルを黒く塗る
+                ctx.fillStyle = "#000000";
+
+                for (let index = 0; index < count(); index++) {
+                    if (!isTileHidden(index)) continue;
+
+                    const x = cfg.x + (index % cfg.cols) * cfg.w;
+                    const y = cfg.y + Math.floor(index / cfg.cols) * cfg.h;
+
+                    ctx.fillRect(x, y, cfg.w, cfg.h);
+                }
+
+                // PNG出力
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        alert("PNGの生成に失敗しました。");
+                        return;
+                    }
+
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+
+                    a.href = url;
+                    a.download = "SuperMetroid_Map.png";
+                    a.click();
+
+                    URL.revokeObjectURL(url);
+                }, "image/png");
+            }
+        })();
+    </script>
+</body>
+
+</html>
