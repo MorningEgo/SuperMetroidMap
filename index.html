@@ -1063,14 +1063,14 @@
                 <span id="hoverRoomName"></span>
             </div>
             <span id="roomSeparator">｜</span>
-            <span id="mouseCoords">[ -- | -- ]</span>
+            <span id="mouseCoords">[ -- | -- ]　</span>
         </div>
 
         <div id="status">
             <span id="hiddenStatus"></span>
             <span class="status-separator">｜</span>
             <span id="selectionStatus"></span>
-            <span class="status-separator">｜</span>
+            <span id="selectionSeparator" class="status-separator">｜</span>
             <span id="modeStatus"></span>
             <span class="status-separator">｜</span>
             <span id="scaleStatus"></span>
@@ -2363,22 +2363,47 @@
                     `${Math.max(1, 3 / scale)}px`
                 );
 
-                const ignoredCount = ignored.size;
-                const totalCount = count() - ignoredCount;
+                // 部屋・サブエリアの総数と発見済み数を集計
+                let totalCount = 0;
+                let discoveredCount = 0;
 
-                const hiddenCount = cells.reduce(
-                    (total, cell, index) =>
-                        total + (!ignored.has(index) && isTileHidden(index) ? 1 : 0),
-                    0
-                );
+                rooms.forEach(room => {
+                    if (room.subAreas?.length) {
+                        // サブエリアがある場合は親部屋も個別にカウント
+                        totalCount++;
 
-                const discoveredCount = totalCount - hiddenCount;
+                        if (!room.hidden) {
+                            discoveredCount++;
+                        }
+
+                        // 各サブエリアを個別にカウント
+                        room.subAreas.forEach(area => {
+                            totalCount++;
+
+                            if (!area.hidden) {
+                                discoveredCount++;
+                            }
+                        });
+                    } else {
+                        // サブエリアがない部屋
+                        totalCount++;
+
+                        if (!room.hidden) {
+                            discoveredCount++;
+                        }
+                    }
+                });
 
                 const pad = (value, width) =>
                     String(value).padStart(width, ' ');
 
                 hiddenStatus.textContent =
                     `発見済み : ${pad(discoveredCount.toLocaleString(), 5)} / ${pad(totalCount.toLocaleString(), 5)}`;
+
+                const selectionSeparator = document.getElementById('selectionSeparator');
+
+                selectionStatus.style.display = editLocked ? 'none' : '';
+                selectionSeparator.style.display = editLocked ? 'none' : '';
 
                 selectionStatus.textContent =
                     `選択 : ${pad(selected.size.toLocaleString(), 5)}`;
@@ -2581,7 +2606,7 @@
                     ? getRoomForTile(index)
                     : null;
 
-                hoverRoomName.textContent = room ? room.name : '';
+                hoverRoomName.textContent = room ? room.name +'　' : '';
 
                 const folder = room
                     ? folders.find(f => f.id === room.folderId)
